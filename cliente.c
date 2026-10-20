@@ -28,18 +28,14 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    const char *msg = "Ola, servidor TCP!";
-    send(sockfd, msg, strlen(msg), 0);
-    printf("[TCP] Mensagem enviada: %s\n", msg);
-
-    char buf[BUF_SIZE] = {0};
-    ssize_t n = recv(sockfd, buf, sizeof(buf) - 1, 0);
-    if (n > 0) {
-        printf("[TCP] Resposta do servidor: %s\n", buf);
+    char buf[BUF_SIZE];
+    ssize_t n;
+    while ((n = recv(sockfd, buf, sizeof(buf) - 1, 0)) > 0) {
+        buf[n] = '\0';
+        printf("%s", buf);
+        fflush(stdout);
     }
 
-    printf("Enrolando pra manter a conexão aberta.\n");
-    while(1);
     close(sockfd);
     return 0;
 }
