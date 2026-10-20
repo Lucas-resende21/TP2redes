@@ -1,21 +1,15 @@
-/*
- * tcp_cliente.c
- *
- * Exemplo didático de cliente TCP (SOCK_STREAM).
- * Conecta ao servidor, envia uma mensagem e imprime a resposta.
- *
- * Uso: ./tcp_cliente
- */
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
-#define PORT 8080
 #define BUF_SIZE 256
 
-int main(void) {
+int main(int argc, char *argv[]) {
+    const char *ip = argv[1];
+    int PORT = strtol(argv[2], NULL, 10);
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
         perror("socket");
@@ -26,7 +20,7 @@ int main(void) {
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_port = htons(PORT);
-    inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr);
+    inet_pton(AF_INET, ip, &addr.sin_addr);
 
     if (connect(sockfd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
         perror("connect");

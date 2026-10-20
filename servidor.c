@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -5,7 +6,6 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
-#define PORT 8080
 #define BUF_SIZE 256
 
 void *atende_cliente(void *arg) {
@@ -33,14 +33,15 @@ void *atende_cliente(void *arg) {
     return NULL;
 }
 
-int main(void) {
+int main(int argc, char *argv[]) {
+    int PORT_client = strtol(argv[1], NULL, 10);
+    const int num_mesa = strtol(argv[2], NULL, 10);
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd < 0) {
         perror("socket");
         return 1;
     }
 
-    /* Permite reiniciar o servidor rapidamente sem erro de "endereço em uso" */
     int opt = 1;
     setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
@@ -48,7 +49,7 @@ int main(void) {
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = INADDR_ANY;
-    addr.sin_port = htons(PORT);
+    addr.sin_port = htons(PORT_client);
 
     if (bind(server_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
         perror("bind");
@@ -62,7 +63,8 @@ int main(void) {
         return 1;
     }
 
-    printf("[TCP] Servidor escutando na porta %d...\n", PORT);
+    printf("[TCP] Servidor escutando na porta %d...\n", PORT_client);
+    printf("[TCP] Servidor iniciado com %d mesas\n", num_mesa);
 
     while (1) {
         int client_fd = accept(server_fd, NULL, NULL);
@@ -72,7 +74,6 @@ int main(void) {
         }
         printf("[TCP] Cliente conectado.\n");
 
-        /* Cria uma thread nova para esse cliente e volta a esperar o próximo */
         pthread_t tid;
         pthread_create(&tid, NULL, atende_cliente, (void *)(long)client_fd);
         pthread_detach(tid);
