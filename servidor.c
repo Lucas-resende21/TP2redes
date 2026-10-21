@@ -8,10 +8,24 @@
 
 #define BUF_SIZE 256
 
+typedef struct {
+    char nome[50];
+    float preco;
+    int quantidade;
+} Cardapio;
+
 int num_mesa;
 int num_clientes = 0;
 pthread_mutex_t trava = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t mesa_livre = PTHREAD_COND_INITIALIZER;
+
+Cardapio cardapio_SeuZe[5] = {
+    {"CERVEJA", 5.50, 20},
+    {"CAIPIRINHA", 12.00, 10},
+    {"GUARANA", 5.00, 15},
+    {"AGUA", 3.00, 30},
+    {"PAODEQUEIJO", 4.50, 25}
+};
 
 void *atende_cliente(void *arg) {
     int client_fd = (int)(long)arg;
@@ -43,7 +57,34 @@ void *atende_cliente(void *arg) {
     send(client_fd, ok, strlen(ok), 0);
 
     char buf[BUF_SIZE];
-    while (recv(client_fd, buf, sizeof(buf), 0) > 0);
+    ssize_t n;
+    while ((n = recv(client_fd, buf, sizeof(buf) - 1, 0)) > 0) {
+        buf[n] = '\0';
+        printf("[Thread %lu] Recebido de %s:%d: %s\n", tid, ip, porta, buf);
+
+        int opcao = 0;
+        if (strcmp(buf, "CARDAPIO") == 0) opcao = 1;
+
+        switch (opcao) {
+        case 1: {
+            char resp[BUF_SIZE] = "CARDAPIO:\n";
+            int itens = sizeof(cardapio_SeuZe) / sizeof(cardapio_SeuZe[0]);
+            for (int i = 0; i < itens; i++) {
+                char linha[64];
+                snprintf(linha, sizeof(linha), "%d - %s R$ %.2f\n",
+                         i + 1, cardapio_SeuZe[i].nome, cardapio_SeuZe[i].preco);
+                strcat(resp, linha);
+            }
+            send(client_fd, resp, strlen(resp), 0);
+            break;
+        }
+        default: {
+            const char *erro = "Mensagem invalida\n";
+            send(client_fd, erro, strlen(erro), 0);
+            break;
+        }
+        }
+    }
 
     pthread_mutex_lock(&trava);
     num_clientes--;
@@ -61,8 +102,12 @@ int main(int argc, char *argv[]) {
         printf("Uso: %s <porta> <num_mesa>\n", argv[0]);
         return 1;
     }
+    //Argumentos da função main
     int PORT_client = strtol(argv[1], NULL, 10);
     num_mesa = strtol(argv[2], NULL, 10);
+    const char *ip_cozinha = argv[3];
+    int PORT_cozinha = strtol(argv[4], NULL, 10);
+
     printf("[TCP] Servidor iniciado com %d mesas\n", num_mesa);
 
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);

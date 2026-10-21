@@ -34,6 +34,29 @@ int main(int argc, char *argv[]) {
         buf[n] = '\0';
         printf("%s", buf);
         fflush(stdout);
+        if (strstr(buf, "Consegui uma mesa")) break;
+    }
+
+    int opcao;
+    while (1) {
+        printf("Digite 1 para ver o cardapio: ");
+        if (scanf("%d", &opcao) != 1) break;
+
+        switch (opcao) {
+        case 1: {
+            const char *msg = "CARDAPIO";
+            send(sockfd, msg, strlen(msg), 0);
+            break;
+        }
+        default:
+            printf("Opcao invalida\n");
+            continue;
+        }
+
+        n = recv(sockfd, buf, sizeof(buf) - 1, 0);
+        if (n <= 0) break;
+        buf[n] = '\0';
+        printf("%s", buf);
     }
 
     close(sockfd);
