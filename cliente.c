@@ -38,15 +38,44 @@ int main(int argc, char *argv[]) {
     }
 
     int opcao;
+    char pedido[20];
+    int quant_pedido;
+
     while (1) {
-        printf("Digite 1 para ver o cardapio: ");
-        if (scanf("%d", &opcao) != 1) break;
+        printf("Faça uma ação: ");
+        scanf("%d", &opcao);
 
         switch (opcao) {
         case 1: {
             const char *msg = "CARDAPIO";
             send(sockfd, msg, strlen(msg), 0);
             break;
+        }
+        case 2: {
+            printf("Digite o pedido: ");
+            scanf("%49s", pedido);
+            printf("Digite a quantidade pedida: ");
+            scanf("%d", &quant_pedido);
+            char msg[BUF_SIZE];
+            snprintf(msg, sizeof(msg), "PEDIR %s %d", pedido, quant_pedido);
+            send(sockfd, msg, strlen(msg), 0);
+            break;
+        }
+        case 3:{
+            const char *msg = "CONTA";
+            send(sockfd, msg, strlen(msg), 0);
+            break;
+        }
+        case 4: {
+            const char *msg = "SAIR";
+            send(sockfd, msg, strlen(msg), 0);
+            n = recv(sockfd, buf, sizeof(buf) - 1, 0);
+            if (n > 0) {
+                buf[n] = '\0';
+                printf("%s", buf);
+            }
+            close(sockfd);
+            return 0;
         }
         default:
             printf("Opcao invalida\n");

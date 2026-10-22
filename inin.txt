@@ -1,4 +1,4 @@
 gcc -std=gnu11 -g -pthread -o servidor servidor.c
-./server 8080 3
+./server 8080 3 192.168.15.2 5858
 gcc -std=gnu11 -g -o client cliente.c
 ./client 127.0.0.1 8080

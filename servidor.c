@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <stdbool.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
@@ -26,6 +27,10 @@ Cardapio cardapio_SeuZe[5] = {
     {"AGUA", 3.00, 30},
     {"PAODEQUEIJO", 4.50, 25}
 };
+
+bool fazer_pedido(char *pedido, int quantidade) {
+    return true;
+}
 
 void *atende_cliente(void *arg) {
     int client_fd = (int)(long)arg;
@@ -56,6 +61,7 @@ void *atende_cliente(void *arg) {
     const char *ok = "Consegui uma mesa\n";
     send(client_fd, ok, strlen(ok), 0);
 
+    float comanda = 0;
     char buf[BUF_SIZE];
     ssize_t n;
     while ((n = recv(client_fd, buf, sizeof(buf) - 1, 0)) > 0) {
@@ -64,22 +70,59 @@ void *atende_cliente(void *arg) {
 
         int opcao = 0;
         if (strcmp(buf, "CARDAPIO") == 0) opcao = 1;
+        if (strncmp(buf, "PEDIR ", 6) == 0) opcao = 2;
+        if (strcmp(buf, "CONTA") == 0) opcao = 3;
+        if (strcmp(buf, "SAIR") == 0) opcao = 4;
 
         switch (opcao) {
         case 1: {
             char resp[BUF_SIZE] = "CARDAPIO:\n";
             int itens = sizeof(cardapio_SeuZe) / sizeof(cardapio_SeuZe[0]);
             for (int i = 0; i < itens; i++) {
-                char linha[64];
-                snprintf(linha, sizeof(linha), "%d - %s R$ %.2f\n",
-                         i + 1, cardapio_SeuZe[i].nome, cardapio_SeuZe[i].preco);
+                char linha[128];
+                snprintf(linha, sizeof(linha), "%d - %s R$ %.2f - Estoque: %d\n",
+                         i + 1, cardapio_SeuZe[i].nome, cardapio_SeuZe[i].preco, cardapio_SeuZe[i].quantidade);
                 strcat(resp, linha);
             }
             send(client_fd, resp, strlen(resp), 0);
             break;
         }
+        case 2:{
+            char pedido[50];
+            int quantidade;
+            sscanf(buf, "PEDIR %49s %d", pedido, &quantidade);
+
+            char resp[BUF_SIZE];
+            if (fazer_pedido(pedido, quantidade)) {
+                float preco = 0;
+                int itens = sizeof(cardapio_SeuZe) / sizeof(cardapio_SeuZe[0]);
+                for (int i = 0; i < itens; i++) {
+                    if (strcmp(cardapio_SeuZe[i].nome, pedido) == 0)
+                        preco = cardapio_SeuZe[i].preco;
+                }
+                float subtotal = preco * quantidade;
+                comanda += subtotal;
+                snprintf(resp, sizeof(resp), "OK %s %d %.2f\n", pedido, quantidade, subtotal);
+            } else {
+                snprintf(resp, sizeof(resp), "ESGOTADO %s\n", pedido);
+            }
+            send(client_fd, resp, strlen(resp), 0);
+            break;
+        }
+        case 3: {
+            char resp[BUF_SIZE];
+            snprintf(resp, sizeof(resp), "CONTA %.2fn", comanda);
+            send(client_fd, resp, strlen(resp), 0);
+            break;
+        }
+        case 4: {
+            char resp[BUF_SIZE];
+            snprintf(resp, sizeof(resp), "TCHAU %.2fn", comanda);
+            send(client_fd, resp, strlen(resp), 0);
+            break; 
+        }
         default: {
-            const char *erro = "Mensagem invalida\n";
+            const char *erro = "ERRO PROTOCOLO\n";
             send(client_fd, erro, strlen(erro), 0);
             break;
         }
