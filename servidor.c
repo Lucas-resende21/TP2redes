@@ -98,7 +98,7 @@ void *atende_cliente(void *arg) {
 }
 
 int main(int argc, char *argv[]) {
-    if (argc < 3) {
+    if (argc < 5) {
         printf("Uso: %s <porta> <num_mesa>\n", argv[0]);
         return 1;
     }
